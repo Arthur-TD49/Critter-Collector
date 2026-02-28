@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ma Collection de Cartes Virtuelles</title>
+    <style>
+        :root {
+            --primary: #e74c3c; /* Rouge */
+            --dark: #2c3e50; /* Gris foncé */
+            --gold: #f1c40f; /* Or pour Légendaire */
+            --blue-rare: #3498db; /* Bleu pour Rare */
+            --green-common: #2ecc71; /* Vert pour Commune */
+            --purple-epic: #9b59b6; /* Violet pour Épique */ /* NOUVEAU */
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            text-align: center;
+            line-height: 1.6;
+            color: var(--dark);
+        }
+
+        header {
+            background: var(--dark);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .stats {
+            margin: 10px 0;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        #pack-container {
+            margin: 30px;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            margin: 5px;
+        }
+
+        button:hover { 
+            transform: scale(1.05); 
+            background-color: #c0392b; /* Rouge plus foncé au survol */
+        }
+
+        /* Grille de l'album */
+        .album {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: #ddd;
+            border-radius: 10px;
+            height: 220px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid #ccc;
+            filter: grayscale(100%);
+            opacity: 0.5;
+            transition: all 0.5s ease;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            padding: 10px; /* Ajout d'un peu de padding */
+        }
+
+        .card.owned {
+            background: white;
+            filter: grayscale(0%);
+            opacity: 1;
+            border-color: var(--dark);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        /* Styles des cartes possédées selon leur rareté */
+        .card.common.owned { border-color: var(--green-common); }
+        .card.rare.owned { border-color: var(--blue-rare); box-shadow: 0 0 15px rgba(52, 152, 219, 0.5); }
+        .card.epic.owned { border-color: var(--purple-epic); box-shadow: 0 0 15px rgba(155, 89, 182, 0.6); } /* NOUVEAU */
+        .card.legendary.owned { 
+            border-color: var(--gold); 
+            box-shadow: 0 0 20px var(--gold);
+            background: linear-gradient(135deg, #fff, #fde9a0); /* Fond dégradé pour légendaire */
+            animation: glow 2s infinite alternate; /* Animation de brillance */
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 10px var(--gold); }
+            to { box-shadow: 0 0 25px var(--gold); }
+        }
+
+        .card img {
+            width: 80%;
+            height: auto;
+            margin-bottom: 10px;
+        }
+
+        .card-name { 
+            font-size: 14px; 
+            font-weight: bold; 
+            margin-top: 5px; /* Espace après l'image/emoji */
+            word-break: break-word; /* Casse les mots longs */
+        }
+        
+        .badge {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            line-height: 25px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .rarity-tag {
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 5px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: white;
+        }
+        .rarity-tag.common { background-color: var(--green-common); }
+        .rarity-tag.rare { background-color: var(--blue-rare); }
+        .rarity-tag.epic { background-color: var(--purple-epic); } /* NOUVEAU */
+        .rarity-tag.legendary { background-color: var(--gold); }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Mon Album de Collection</h1>
+    <div class="stats">Cartes débloquées : <span id="count">0</span> / <span id="total-cards"></span></div>
+    <div id="pack-container">
+        <button onclick="openPack()">Ouvrir un Booster (Gratuit)</button>
+        <button onclick="resetAlbum()" style="background-color: #95a5a6;">Réinitialiser l'album</button>
+    </div>
+</header>
+
+<div class="album" id="album">
+    </div>
+
+<script>
+    // Configuration étendue des cartes
+    const cardData = [
+        // COMMUNES (Probabilité haute) - 10 cartes
+        { id: 1, name: "Le Lion", rarity: "common", img: "🦁" },
+        { id: 2, name: "L'Aigle", rarity: "common", img: "🦅" },
+        { id: 4, name: "Le Loup", rarity: "common", img: "🐺" },
+        { id: 5, name: "Le Requin", rarity: "common", img: "🦈" },
+        { id: 7, name: "Le Renard", rarity: "common", img: "🦊" },
+        { id: 8, name: "L'Ours", rarity: "common", img: "🐻" },
+        { id: 9, name: "Le Panda", rarity: "common", img: "🐼" },
+        { id: 10, name: "Le Tigre", rarity: "common", img: "🐯" },
+        { id: 17, name: "Le Singe", rarity: "common", img: "🐒" },
+        { id: 18, name: "Le Zèbre", rarity: "common", img: "🦓" },
+
+        // RARES (Probabilité moyenne) - 6 cartes
+        { id: 11, name: "La Licorne", rarity: "rare", img: "🦄" },
+        { id: 12, name: "Le Mammouth", rarity: "rare", img: "🦣" },
+        { id: 13, name: "Le Gorille", rarity: "rare", img: "🦍" },
+        { id: 14, name: "Le Cobra", rarity: "rare", img: "🐍" },
+        { id: 19, name: "Le Faune", rarity: "rare", img: "🐐" }, // Imagine un faune avec cet emoji
+        { id: 20, name: "Le Griffon", rarity: "rare", img: "🦅" }, // Imagine un griffon avec cet emoji
+
+        // ÉPIQUES (Nouvelle rareté !) - 4 cartes
+        { id: 21, name: "Le Basilic", rarity: "epic", img: "🦎" }, // Imagine un basilic
+        { id: 22, name: "Le Minotaure", rarity: "epic", img: "🐂" }, // Imagine un minotaure
+        { id: 23, name: "Le Centaure", rarity: "epic", img: "🐎" }, // Imagine un centaure
+        { id: 24, name: "Le Sphinx", rarity: "epic", img: "🦁" }, // Imagine un sphinx
+
+        // LÉGENDAIRES (Probabilité faible) - 4 cartes
+        { id: 3, name: "Le Dragon", rarity: "legendary", img: "🐲" },
+        { id: 6, name: "Le Phénix", rarity: "legendary", img: "🔥" },
+        { id: 15, name: "Le Kraken", rarity: "legendary", img: "🐙" },
+        { id: 16, name: "Le Yéti", rarity: "legendary", img: "❄️" }
+    ];
+
+    // Chargement de la collection sauvegardée depuis le Local Storage
+    let myCollection = JSON.parse(localStorage.getItem('myCards')) || {};
+
+    document.getElementById('total-cards').innerText = cardData.length;
+
+    // Fonction pour initialiser ou rafraîchir l'album
+    function initAlbum() {
+        const albumDiv = document.getElementById('album');
+        albumDiv.innerHTML = ''; 
+        let ownedCount = 0; 
+
+        cardData.forEach(card => {
+            const isOwned = myCollection[card.id] > 0; 
+            if(isOwned) ownedCount++; 
+
+            const cardEl = document.createElement('div');
+            cardEl.className = `card ${isOwned ? 'owned' : ''} ${card.rarity}`;
+            cardEl.innerHTML = `
+                <div style="font-size: 50px">${card.img}</div>
+                <div class="card-name">${card.name}</div>
+                <div class="rarity-tag ${card.rarity}">${card.rarity}</div>
+                ${myCollection[card.id] > 1 ? `<div class="badge">x${myCollection[card.id]}</div>` : ''}
+            `;
+            albumDiv.appendChild(cardEl);
+        });
+
+        document.getElementById('count').innerText = ownedCount; 
+    }
+
+    // Fonction pour ouvrir un paquet et obtenir une carte avec des probabilités
+    function openPack() {
+        const rand = Math.random() * 100; // Nombre aléatoire entre 0 et 100
+        let pool = []; 
+
+        // Définition des probabilités pour chaque rareté
+        if (rand < 2) { 
+            // 2% de chance d'avoir une Légendaire
+            pool = cardData.filter(c => c.rarity === "legendary");
+        } else if (rand < 8) { 
+            // 6% de chance (8-2) d'avoir une Épique
+            pool = cardData.filter(c => c.rarity === "epic");
+        } else if (rand < 25) { 
+            // 17% de chance (25-8) d'avoir une Rare
+            pool = cardData.filter(c => c.rarity === "rare");
+        } else { 
+            // 75% de chance (100-25) d'avoir une Commune
+            pool = cardData.filter(c => c.rarity === "common");
+        }
+
+        // Fallback si le pool est vide (ne devrait pas arriver avec une bonne config)
+        if (pool.length === 0) { 
+            pool = cardData.filter(c => c.rarity === "common"); 
+        }
+
+        // Tire une carte au hasard dans le pool sélectionné
+        const cardWon = pool[Math.floor(Math.random() * pool.length)];
+
+        // Ajoute la carte à la collection de l'utilisateur
+        myCollection[cardWon.id] = (myCollection[cardWon.id] || 0) + 1;
+        
+        // Sauvegarde la collection mise à jour dans le Local Storage
+        localStorage.setItem('myCards', JSON.stringify(myCollection));
+
+        // Message d'alerte personnalisé selon la rareté
+        let message = `Bravo ! Tu as obtenu : ${cardWon.name} ${cardWon.img}`;
+        if(cardWon.rarity === "legendary") message = "🌟 INCROYABLE ! " + message + " 🌟";
+        else if(cardWon.rarity === "epic") message = "💜 FANTASTIQUE ! " + message + " 💜";
+        else if(cardWon.rarity === "rare") message = "✨ Bien joué ! " + message + " ✨";
+        
+        alert(message);
+        initAlbum(); // Rafraîchit l'affichage de l'album
+    }
+
+    // Fonction pour réinitialiser l'album
+    function resetAlbum() {
+        if (confirm("Es-tu sûr de vouloir réinitialiser ta collection ? Toutes tes cartes seront perdues !")) {
+            localStorage.removeItem('myCards'); 
+            myCollection = {}; 
+            initAlbum(); 
+            alert("Ton album a été réinitialisé !");
+        }
+    }
+
+    // Lancement de l'initialisation de l'album au chargement de la page
+    initAlbum();
+</script>
+
+</body>
+</html>
